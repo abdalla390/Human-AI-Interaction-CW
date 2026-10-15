@@ -60,6 +60,14 @@
   .cmp p{margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap}
   .reflect{background:var(--bot);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px;line-height:1.6;white-space:pre-wrap;font-size:14.5px}
   .note{font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:14px}
+  /* evaluator review trail */
+  .review{margin-top:10px;font-size:12px;color:var(--muted);white-space:normal}
+  .review summary{cursor:pointer;color:var(--accent2);font-weight:600}
+  .review summary.warnsum{color:var(--warn)}
+  .review .attempt{border-left:2px solid var(--line);padding:6px 0 6px 10px;margin-top:8px}
+  .review .ah{font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px}
+  .review .aq{color:var(--txt);margin:3px 0;white-space:pre-wrap}
+  .review .ai{white-space:pre-wrap}
   footer{color:var(--muted);font-size:12px;text-align:center;margin-top:26px}
   a{color:var(--accent)}
 </style>
@@ -197,6 +205,22 @@ const ROUND_PLAN = [
 const LEVEL_ORDER = ["Comprehension","Application","Analysis","Synthesis","Evaluation"];
 const TOTAL_ROUNDS = 10;
 
+/* ---------------- Evaluator-optimizer ----------------
+   Every drafted question is scored by a separate evaluator call before the
+   user sees it. If any criterion falls below PASS_SCORE, the generator rewrites
+   the question using the evaluator's feedback, up to MAX_REVISIONS times.     */
+const EVAL_CRITERIA = {
+  neutrality:"Does not lean toward either article's side, presuppose a conclusion, or use loaded/emotive wording.",
+  fairness:"If it presents considerations or options, both sides are represented with equal weight and charity.",
+  directness:"Asks exactly ONE clear question, with at most 1–2 short sentences of framing. No lists, no lecturing.",
+  clarity:"Unambiguous — the user can tell exactly what is being asked; no vague terms, jargon, or double-barrelled phrasing.",
+  bloomAlignment:"Actually operates at the target Bloom's level for this round (not lower or higher).",
+  noArticleQuiz:"Asks about the topic and the user's own thinking — never quizzes them on article content or assumes they read it.",
+  continuity:"Builds on the user's previous answer rather than ignoring it (score 5 if this is the first question)."
+};
+const PASS_SCORE = 4;      // each criterion is scored 1–5
+const MAX_REVISIONS = 2;
+
 // ---------------- State ----------------
 let cfg = {};
 let history = [];      // {role:'user'|'assistant', content}
@@ -311,24 +335,123 @@ function updateProgress(){
   });
 }
 
-function addMsg(role,text){
+function addMsg(role,text,reviewLog){
   const d=document.createElement('div');
   d.className='msg '+(role==='assistant'?'bot':'user');
   d.innerHTML=`<div class="who">${role==='assistant'?'Coach':'You'}</div>`;
   const p=document.createElement('div');p.textContent=text;d.appendChild(p);
+  if(reviewLog&&reviewLog.length)d.appendChild(renderReview(reviewLog));
   $('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+// Collapsible audit trail of the evaluator-optimizer loop for one question.
+function renderReview(log){
+  const last=log[log.length-1];
+  const passed=last.review&&last.review.pass;
+  const revisions=log.length-1;
+  const det=document.createElement('details');det.className='review';
+  const sum=document.createElement('summary');
+  sum.textContent=last.error?"Bias review unavailable"
+    :(passed?"✓ Passed bias review":"⚠ Best effort — did not fully pass review")
+     +(revisions?` after ${revisions} revision${revisions>1?'s':''}`:"");
+  if(!passed)sum.classList.add('warnsum');
+  det.appendChild(sum);
+  log.forEach((a,i)=>{
+    const box=document.createElement('div');box.className='attempt';
+    const h=document.createElement('div');h.className='ah';
+    h.textContent=i===0?"Draft":`Revision ${i}`;box.appendChild(h);
+    const q=document.createElement('div');q.className='aq';q.textContent=a.draft;box.appendChild(q);
+    const info=document.createElement('div');info.className='ai';
+    if(a.error)info.textContent="Evaluator error: "+a.error;
+    else{
+      const s=Object.entries(a.review.scores).map(([k,v])=>`${k} ${v}`).join(" · ");
+      info.textContent=s
+        +(a.review.leansToward!=='none'?`\nLeans toward Article ${a.review.leansToward}`:"")
+        +(a.review.issues.length?"\nIssues: "+a.review.issues.join("; "):"");
+    }
+    box.appendChild(info);det.appendChild(box);
+  });
+  return det;
 }
 
 async function askQuestion(){
   setBusy(true);
-  const messages=[{role:'system',content:systemPrompt()},...history,{role:'system',content:roundNote()}];
+  const base=[{role:'system',content:systemPrompt()},...history,{role:'system',content:roundNote()}];
   try{
-    const q=await callOpenAI(messages);
-    history.push({role:'assistant',content:q});
-    addMsg('assistant',q);
+    const {question,log}=await generateWithReview(base);
+    history.push({role:'assistant',content:question});
+    addMsg('assistant',question,log);
   }catch(e){fail($('sessErr'),e.message);}
   setBusy(false);
   updateProgress();
+}
+
+// Generator → evaluator → (revise) loop. Returns the final question plus a log of each attempt.
+async function generateWithReview(base){
+  const log=[];
+  let draft=await callOpenAI(base);
+  for(let attempt=0;;attempt++){
+    setTyping(attempt===0?"Coach is checking its question for bias…":`Coach is revising its question (${attempt}/${MAX_REVISIONS})…`);
+    let review;
+    try{ review=await evaluateQuestion(draft); }
+    catch(e){ log.push({draft,error:e.message}); break; }   // evaluator failure → don't block the session
+    log.push({draft,review});
+    if(review.pass||attempt>=MAX_REVISIONS)break;
+    draft=await callOpenAI([...base,
+      {role:'assistant',content:draft},
+      {role:'system',content:revisionNote(review)}]);
+  }
+  setTyping("Coach is thinking…");
+  return {question:draft,log};
+}
+
+function evaluatorSystem(){
+  const level=ROUND_PLAN[round-1];
+  const crit=Object.entries(EVAL_CRITERIA).map(([k,v])=>`- ${k}: ${v}`).join("\n");
+  return `You are an independent quality reviewer for a Socratic critical-thinking coach. The coach is about to ask a user ONE question about a contested topic. Two articles take conflicting positions; the user has NOT read them. The coach must never reveal an opinion or nudge the user toward either article. Your job is to catch any bias or weakness in the question BEFORE the user sees it. Be strict: subtle framing effects (word choice, which side is mentioned first or more vividly, presupposed premises, leading "don't you think…" forms) count as bias.
+
+Score the question 1–5 on each criterion (5 = flawless, 4 = acceptable, ≤3 = must be revised):
+${crit}
+
+TOPIC: ${cfg.topic || "(user did not specify)"}
+TARGET BLOOM'S LEVEL for round ${round}: ${level} — ${BLOOM[level].def} (verbs: ${BLOOM[level].verbs})
+
+=== ARTICLE A (for detecting which side a question leans toward) ===
+${cfg.artA}
+
+=== ARTICLE B ===
+${cfg.artB}
+
+Respond with ONLY a JSON object of this shape:
+{"scores":{${Object.keys(EVAL_CRITERIA).map(k=>`"${k}":<1-5>`).join(",")}},
+ "leansToward":"A"|"B"|"none",
+ "issues":["<short, specific problem>", ...],
+ "suggestion":"<concrete instruction for how to rewrite the question, or empty if none needed>"}`;
+}
+
+async function evaluateQuestion(question){
+  const lastUser=[...history].reverse().find(m=>m.role==='user');
+  const lastCoach=[...history].reverse().find(m=>m.role==='assistant');
+  const ctx=`PREVIOUS COACH QUESTION: ${lastCoach?lastCoach.content:"(none — this is the first question)"}
+USER'S LAST ANSWER: ${lastUser?lastUser.content:"(none — this is the first question)"}
+
+QUESTION TO REVIEW:
+"""${question}"""`;
+  const raw=await callOpenAI([{role:'system',content:evaluatorSystem()},{role:'user',content:ctx}],{json:true});
+  const r=JSON.parse(raw);
+  const scores=r.scores||{};
+  const failing=Object.keys(EVAL_CRITERIA).filter(k=>!(Number(scores[k])>=PASS_SCORE));
+  // Pass is decided here from the scores, not trusted from the model.
+  const pass=failing.length===0&&(!r.leansToward||r.leansToward==='none');
+  return {scores,failing,pass,leansToward:r.leansToward||'none',issues:r.issues||[],suggestion:r.suggestion||""};
+}
+
+function revisionNote(review){
+  return `An independent reviewer flagged your last question. Rewrite it to fix these problems while keeping the same round goal and Bloom's level.
+Failing criteria: ${review.failing.join(", ")||"(none)"}${review.leansToward!=='none'?`\nIt leans toward Article ${review.leansToward}'s side — rebalance it.`:""}
+Issues: ${review.issues.join(" | ")||"(none listed)"}
+Reviewer suggestion: ${review.suggestion||"(none)"}
+Reply with ONLY the rewritten message to the user — no preamble, no mention of the review.`;
 }
 
 async function sendAnswer(){
@@ -372,18 +495,22 @@ VERDICT: <4-6 sentences addressed to "you". (1) Briefly mirror how your thinking
   }catch(e){$('sumAfter').textContent="—";$('sumReflect').textContent="(Could not generate the verdict: "+e.message+")";}
 }
 
+function setTyping(t){$('typing').textContent=t;}
 function setBusy(b){
+  if(b)setTyping("Coach is thinking…");
   $('typing').classList.toggle('hidden',!b);
   $('sendBtn').disabled=b;
 }
 function fail(el,m){el.textContent=m;show(el);}
 
 // ---------------- OpenAI call ----------------
-async function callOpenAI(messages){
+async function callOpenAI(messages,opts={}){
+  const body={model:cfg.model,messages};
+  if(opts.json)body.response_format={type:"json_object"};
   const res=await fetch('https://api.openai.com/v1/chat/completions',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
-    body:JSON.stringify({model:cfg.model,messages})
+    body:JSON.stringify(body)
   });
   if(!res.ok){
     let detail="";try{detail=(await res.json()).error?.message||"";}catch(e){}
