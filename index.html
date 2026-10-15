@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thinkwell — Critical Thinking Guide</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e7e9ee; --muted:#9aa3b2; --accent:#6ea8fe; --accent2:#7ee0b8;
+    --user:#223049; --bot:#1b2430; --warn:#f0a35e; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 70% -10%,#1a2030 0%,var(--bg) 55%);color:var(--txt);min-height:100vh}
+  .wrap{max-width:860px;margin:0 auto;padding:28px 20px 80px}
+  header h1{font-size:26px;margin:0 0 4px;letter-spacing:-.3px}
+  header .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .accentdot{color:var(--accent2)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+  input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+  textarea{resize:vertical;min-height:120px;line-height:1.5}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:240px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  button{cursor:pointer;border:none;border-radius:10px;font-size:14px;font-weight:600;padding:11px 18px;transition:.15s}
+  .btn-primary{background:var(--accent);color:#06101f}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn-ghost:hover{color:var(--txt)}
+  .toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  /* progress */
+  .prog{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .prog b{color:var(--accent2)}
+  .bar{height:7px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-bottom:16px;border:1px solid var(--line)}
+  .bar>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0;transition:width .4s}
+  .levels{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
+  .lv{font-size:10.5px;padding:4px 8px;border-radius:99px;background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .lv.active{background:var(--accent);color:#06101f;border-color:var(--accent);font-weight:700}
+  .lv.done{color:var(--accent2);border-color:#2f4a40}
+  /* chat */
+  .chat{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+  .msg{max-width:88%;padding:13px 15px;border-radius:14px;font-size:14.5px;line-height:1.55;white-space:pre-wrap}
+  .msg.bot{background:var(--bot);border:1px solid var(--line);border-top-left-radius:4px;align-self:flex-start}
+  .msg.user{background:var(--user);border:1px solid #2c3d57;border-top-right-radius:4px;align-self:flex-end}
+  .msg .who{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+  .answerbox{display:flex;gap:10px;align-items:flex-end}
+  .answerbox textarea{min-height:54px}
+  .typing{color:var(--muted);font-size:13px;font-style:italic}
+  .err{background:#3a1f1f;border:1px solid #633;color:#f2b8b8;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:12px}
+  .hidden{display:none}
+  /* summary */
+  .cmp{display:flex;gap:14px;flex-wrap:wrap}
+  .cmp>div{flex:1;min-width:240px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .cmp h4{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+  .cmp p{margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap}
+  .reflect{background:var(--bot);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px;line-height:1.6;white-space:pre-wrap;font-size:14.5px}
+  .note{font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:14px}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:26px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Thinkwell <span class="accentdot">·</span> Critical Thinking Guide</h1>
+    <div class="sub">Bring two articles that disagree on the same topic — you don't need to have read them. An AI coach asks you questions about the topic (never giving its own opinion), guiding you through Bloom's Taxonomy to reason out your own position. At the end it reveals which article best fits where you landed.</div>
+  </header>
+
+  <!-- ============ SETUP ============ -->
+  <section id="setup">
+    <div class="card">
+      <label>OpenAI API key</label>
+      <input id="apikey" type="password" placeholder="sk-..." autocomplete="off" />
+      <div class="hint">Used only in your browser to call OpenAI directly. Stored in this tab's local storage, never sent anywhere else. Get one at platform.openai.com/api-keys</div>
+
+      <div class="row">
+        <div>
+          <label>Model</label>
+          <select id="model">
+            <option value="gpt-6-luna" selected>GPT-6 Luna (recommended)</option>
+            <option value="gpt-4o-mini">gpt-4o-mini (fast & cheap)</option>
+            <option value="gpt-4o">gpt-4o</option>
+            <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            <option value="gpt-4.1">gpt-4.1</option>
+          </select>
+        </div>
+        <div>
+          <label>Topic you want to think through</label>
+          <input id="topic" placeholder="e.g. Should cities ban cars from downtown?" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Article A — paste the full text</label>
+          <textarea id="artA" placeholder="Paste the first article here..."></textarea>
+        </div>
+        <div>
+          <label>Article B — the conflicting view</label>
+          <textarea id="artB" placeholder="Paste the opposing article here..."></textarea>
+        </div>
+      </div>
+
+      <label>Before we start — what's your gut feeling on this topic right now? (It's fine to be unsure, or to have none.)</label>
+      <textarea id="stanceStart" style="min-height:80px" placeholder="Your starting instinct on the topic. We'll compare it to the position you reason into."></textarea>
+    </div>
+
+    <button id="startBtn" class="btn-primary">Start the guided session →</button>
+    <div id="setupErr" class="err hidden"></div>
+  </section>
+
+  <!-- ============ SESSION ============ -->
+  <section id="session" class="hidden">
+    <div class="card">
+      <div class="toprow">
+        <div style="flex:1">
+          <div class="prog">Round <b id="roundNum">1</b> of 10 &nbsp;·&nbsp; Bloom's level: <b id="levelName">Comprehension</b></div>
+          <div class="bar"><div id="barFill"></div></div>
+          <div class="levels" id="levels"></div>
+        </div>
+        <button id="restartBtn" class="btn-ghost" style="margin-left:14px">Restart</button>
+      </div>
+
+      <div class="chat" id="chat"></div>
+      <div id="typing" class="typing hidden">Coach is thinking…</div>
+
+      <div class="answerbox" id="answerArea">
+        <textarea id="answer" placeholder="Type your answer… (Ctrl/Cmd+Enter to send)"></textarea>
+        <button id="sendBtn" class="btn-primary">Send</button>
+      </div>
+      <div id="sessErr" class="err hidden"></div>
+    </div>
+  </section>
+
+  <!-- ============ SUMMARY ============ -->
+  <section id="summary" class="hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Your thinking, before &amp; after</h2>
+      <div class="cmp">
+        <div><h4>Where you started</h4><p id="sumBefore"></p></div>
+        <div><h4>Where you landed</h4><p id="sumAfter"></p></div>
+      </div>
+      <div class="reflect" id="sumReflect"></div>
+      <div class="note">Throughout the ten rounds the coach pushed you toward nothing — it only asked neutral questions, climbing from clarifying your own view up to evaluating it. The article it names above is the one that best matches the position <em>your own reasoning</em> arrived at — not a claim about which article is objectively right.</div>
+      <div style="margin-top:16px"><button id="againBtn" class="btn-ghost">Start a new session</button></div>
+    </div>
+  </section>
+
+  <footer>Thinkwell · a thinking coach, not an answer machine · runs entirely in your browser</footer>
+</div>
+
+<script>
+/* ---------------- Bloom's Taxonomy engine ----------------
+   Levels, verbs, and question stems taken from the provided
+   "Bloom's Taxonomy of Measurable Verbs" reference. The 10 rounds
+   climb from Comprehension up to Evaluation (the diagram's end goal).  */
+const BLOOM = {
+  Comprehension:{
+    def:"Clarify what the topic means to you and what's really at stake in it.",
+    verbs:"explain, describe, restate, distinguish, discuss",
+    stems:["When you think about this topic, what matters most to you about it?","In your own words, what's really at stake here?","What does <key term> mean to you?","What do you already believe about this, if anything?"]
+  },
+  Application:{
+    def:"Bring the topic down to concrete situations and your own experience.",
+    verbs:"apply, show, illustrate, examine, use",
+    stems:["Can you think of a real situation where this plays out?","How would this affect someone you know?","In what kind of case would your instinct change?","What would this look like in practice for you?"]
+  },
+  Analysis:{
+    def:"Break the topic into its trade-offs, hidden assumptions, and competing values.",
+    verbs:"analyze, compare, contrast, distinguish, examine, investigate",
+    stems:["What's the trade-off you're really weighing here?","What assumption is your current thinking resting on?","What's the strongest case for the view opposite to your instinct?","Between two competing concerns, which matters more to you, and why?"]
+  },
+  Synthesis:{
+    def:"Pull your thinking together into a coherent position of your own.",
+    verbs:"construct, formulate, compose, propose, design",
+    stems:["How would you state your position in one sentence now?","What would a stance that honours both concerns look like?","What's the underlying principle behind where you're landing?"]
+  },
+  Evaluation:{
+    def:"Judge and defend the position you've reasoned into, against clear criteria.",
+    verbs:"judge, assess, justify, defend, decide, prioritize",
+    stems:["By what criteria are you judging this?","Can you defend your position against its strongest objection?","How confident are you, and what would change your mind?","Given everything, where have you firmly landed, and why?"]
+  }
+};
+
+// 10-round progression through the levels (ends on Evaluation)
+const ROUND_PLAN = [
+  "Comprehension","Comprehension","Application","Analysis","Analysis",
+  "Analysis","Synthesis","Evaluation","Evaluation","Evaluation"
+];
+const LEVEL_ORDER = ["Comprehension","Application","Analysis","Synthesis","Evaluation"];
+const TOTAL_ROUNDS = 10;
+
+// ---------------- State ----------------
+let cfg = {};
+let history = [];      // {role:'user'|'assistant', content}
+let round = 1;         // round whose QUESTION is currently shown / being answered
+let startStance = "";
+
+// ---------------- DOM ----------------
+const $ = id => document.getElementById(id);
+const show = (el)=>el.classList.remove('hidden');
+const hide = (el)=>el.classList.add('hidden');
+
+// Restore saved key
+$('apikey').value = localStorage.getItem('tw_key') || "";
+
+$('startBtn').onclick = start;
+$('sendBtn').onclick = sendAnswer;
+$('restartBtn').onclick = reset;
+$('againBtn').onclick = reset;
+$('answer').addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();sendAnswer();}
+});
+
+function reset(){
+  hide($('session'));hide($('summary'));show($('setup'));
+  history=[];round=1;startStance="";
+  $('chat').innerHTML="";$('answer').value="";
+}
+
+// ---------------- System prompt ----------------
+function systemPrompt(){
+  let stems = LEVEL_ORDER.map(l=>`• ${l} (${BLOOM[l].def})\n   example stems: ${BLOOM[l].stems.join("  |  ")}`).join("\n");
+  return `You are "Thinkwell", a Socratic critical-thinking coach. The user is reasoning their way toward their OWN position on a topic. Two articles take conflicting positions on this topic; YOU have read them, but the USER has NOT and is not expected to. At the very end, the tool will reveal which article best fits the position the user reasoned into.
+
+ABSOLUTE RULES — never break these:
+1. You NEVER give your own opinion and you NEVER say which position is correct or which article is better. The reasoning and the conclusion belong entirely to the user.
+2. This is NOT a reading comprehension test. NEVER quiz the user on what the articles say, never ask "what does Article A argue", and never assume they have read anything. Your questions are about the TOPIC and the user's own thinking — not about the articles.
+3. You MAY surface a consideration or tension that the articles raise, but only as neutral food for thought to provoke the user's own view (e.g. "Some would argue X, others Y — which sits better with you, and why?"). Never attribute it to a specific article or imply the user should know it.
+4. You ask EXACTLY ONE question per turn. No lists. No lecturing.
+5. Questions must be NEUTRAL and non-leading — never phrased to push the user toward either side, and never revealing which way you lean. Check each question for bias before asking.
+6. Keep each message short: at most 1–2 sentences of framing, then the single question. Build on the user's previous answer — acknowledge it in a short clause, then probe deeper at the target level.
+
+You use the two articles only to understand the real points of contention on this topic, so you can ask questions that help the user think those through. You guide them through Bloom's Taxonomy, climbing from clarifying their own view up to evaluating and defending it:
+${stems}
+
+TOPIC: ${cfg.topic || "(user did not specify)"}
+
+=== ARTICLE A ===
+${cfg.artA}
+
+=== ARTICLE B ===
+${cfg.artB}
+
+The user's starting opinion (do not quote back judgementally, just keep in mind): ${startStance || "(none given)"}`;
+}
+
+// System message for the final verdict step — here the tool DOES commit to an article,
+// matched to the position the user's own reasoning pointed to during the rounds.
+function summarySystem(){
+  return `You are "Thinkwell". The conversation above is a 10-round critical-thinking session in which you asked a user neutral questions about a topic. Two articles take conflicting positions on this topic; the user has NOT read them. Your job NOW is to (a) infer the position the user's OWN reasoning points to, and (b) decisively tell them which single article is best suited to that position.
+
+TOPIC: ${cfg.topic || "(user did not specify)"}
+
+=== ARTICLE A ===
+${cfg.artA}
+
+=== ARTICLE B ===
+${cfg.artB}
+
+The user's starting gut feeling before the session: ${startStance || "(none given)"}`;
+}
+
+function roundNote(){
+  const level = ROUND_PLAN[round-1];
+  const b = BLOOM[level];
+  return `This is round ${round} of ${TOTAL_ROUNDS}. Target Bloom's level: ${level} — ${b.def}
+Ask ONE neutral, non-leading question at this level that helps the user think through the TOPIC itself. Do NOT quiz them on the articles; assume they have not read them. You may draw on a point of contention the articles raise, but frame it as a prompt for the user's own view. Useful verbs: ${b.verbs}.`;
+}
+
+// ---------------- Flow ----------------
+async function start(){
+  cfg = {
+    key:$('apikey').value.trim(),
+    model:$('model').value,
+    topic:$('topic').value.trim(),
+    artA:$('artA').value.trim(),
+    artB:$('artB').value.trim(),
+  };
+  startStance = $('stanceStart').value.trim();
+  const err=$('setupErr');
+  if(!cfg.key){return fail(err,"Please enter your OpenAI API key.");}
+  if(!cfg.artA||!cfg.artB){return fail(err,"Please paste both articles.");}
+  hide(err);
+  localStorage.setItem('tw_key',cfg.key);
+
+  hide($('setup'));show($('session'));
+  buildLevelChips();updateProgress();
+  await askQuestion();   // round 1
+}
+
+function buildLevelChips(){
+  $('levels').innerHTML = LEVEL_ORDER.map(l=>`<span class="lv" data-l="${l}">${l}</span>`).join("");
+}
+function updateProgress(){
+  const level = ROUND_PLAN[Math.min(round,TOTAL_ROUNDS)-1];
+  $('roundNum').textContent = Math.min(round,TOTAL_ROUNDS);
+  $('levelName').textContent = level;
+  $('barFill').style.width = ((Math.min(round-1,TOTAL_ROUNDS))/TOTAL_ROUNDS*100)+"%";
+  const curIdx = LEVEL_ORDER.indexOf(level);
+  document.querySelectorAll('.lv').forEach(el=>{
+    const i = LEVEL_ORDER.indexOf(el.dataset.l);
+    el.className = 'lv'+(i<curIdx?' done':i===curIdx?' active':'');
+  });
+}
+
+function addMsg(role,text){
+  const d=document.createElement('div');
+  d.className='msg '+(role==='assistant'?'bot':'user');
+  d.innerHTML=`<div class="who">${role==='assistant'?'Coach':'You'}</div>`;
+  const p=document.createElement('div');p.textContent=text;d.appendChild(p);
+  $('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+async function askQuestion(){
+  setBusy(true);
+  const messages=[{role:'system',content:systemPrompt()},...history,{role:'system',content:roundNote()}];
+  try{
+    const q=await callOpenAI(messages);
+    history.push({role:'assistant',content:q});
+    addMsg('assistant',q);
+  }catch(e){fail($('sessErr'),e.message);}
+  setBusy(false);
+  updateProgress();
+}
+
+async function sendAnswer(){
+  const text=$('answer').value.trim();
+  if(!text)return;
+  $('answer').value="";
+  addMsg('user',text);
+  hide($('sessErr'));
+  history.push({role:'user',content:text});
+
+  if(round>=TOTAL_ROUNDS){   // answered the last round → infer position & deliver the verdict
+    round=TOTAL_ROUNDS;updateProgress();
+    $('barFill').style.width="100%";
+    addMsg('assistant',"That's our ten rounds. Weighing everything you said and matching it to the two articles…");
+    return buildSummary();
+  }
+  round++;
+  await askQuestion();
+}
+
+async function buildSummary(){
+  hide($('session'));show($('summary'));
+  $('sumBefore').textContent = startStance || "(you didn't record a starting gut feeling)";
+  $('sumAfter').textContent = "…";
+  $('sumReflect').textContent="Weighing your reasoning and choosing the article that best fits it…";
+  // Infer the user's position from the whole session, then commit to ONE article.
+  const msgs=[
+    {role:'system',content:summarySystem()},
+    ...history,
+    {role:'system',content:`The session is over. The user will NOT state a position themselves — infer it from everything they said across the rounds, then tell them which article is best. Respond in EXACTLY this format, keeping the two labels each on their own line:
+
+POSITION: <one sentence, in your words, stating the position the user's OWN reasoning points to>
+
+VERDICT: <4-6 sentences addressed to "you". (1) Briefly mirror how your thinking moved from your starting gut feeling to this position, naming the strongest point you made. (2) State in one line each the core claim of Article A and of Article B. (3) Then decisively tell the user WHICH ONE article (name it: Article A or Article B) is best suited to where their reasoning landed, and why it fits. Commit to a single article — do NOT hedge, do NOT hand the choice back. Base the choice on the user's own reasoning, not on which article you personally think is objectively correct.>`}
+  ];
+  try{
+    const r=await callOpenAI(msgs);
+    const m=r.match(/POSITION:\s*([\s\S]*?)\n\s*VERDICT:\s*([\s\S]*)/i);
+    if(m){$('sumAfter').textContent=m[1].trim();$('sumReflect').textContent=m[2].trim();}
+    else{$('sumAfter').textContent="(see below)";$('sumReflect').textContent=r;}
+  }catch(e){$('sumAfter').textContent="—";$('sumReflect').textContent="(Could not generate the verdict: "+e.message+")";}
+}
+
+function setBusy(b){
+  $('typing').classList.toggle('hidden',!b);
+  $('sendBtn').disabled=b;
+}
+function fail(el,m){el.textContent=m;show(el);}
+
+// ---------------- OpenAI call ----------------
+async function callOpenAI(messages){
+  const res=await fetch('https://api.openai.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.key},
+    body:JSON.stringify({model:cfg.model,messages})
+  });
+  if(!res.ok){
+    let detail="";try{detail=(await res.json()).error?.message||"";}catch(e){}
+    throw new Error("OpenAI error ("+res.status+"): "+(detail||res.statusText));
+  }
+  const data=await res.json();
+  return data.choices[0].message.content.trim();
+}
+</script>
+</body>
+</html>
